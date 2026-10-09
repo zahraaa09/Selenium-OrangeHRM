@@ -6,8 +6,13 @@ from selenium.webdriver.support import expected_conditions as EC
 
 
 def test_login_orangehrm():
+    import os
+
     options = Options()
-    options.binary_location = r"C:\Program Files\Mozilla Firefox ESR\firefox.exe"
+    firefox_binary = os.getenv("FIREFOX_BINARY")
+
+    if firefox_binary:
+        options.binary_location = firefox_binary
 
     driver = webdriver.Remote(
         command_executor="http://localhost:4444",

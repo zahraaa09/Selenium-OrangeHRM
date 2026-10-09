@@ -3,11 +3,17 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import os
 
 
 def test_dashboard():
     options = Options()
-    options.binary_location = r"C:\Program Files\Mozilla Firefox ESR\firefox.exe"
+    firefox_binary = os.getenv("FIREFOX_BINARY")
+
+    if firefox_binary:
+        options.binary_location = firefox_binary
+    elif os.path.exists(r"C:\Program Files\Mozilla Firefox ESR\firefox.exe"):
+        options.binary_location = r"C:\Program Files\Mozilla Firefox ESR\firefox.exe"
 
     driver = webdriver.Remote(
         command_executor="http://localhost:4444",
@@ -41,3 +47,4 @@ def test_dashboard():
 
     finally:
         driver.quit()
+
