@@ -2,9 +2,11 @@
 
 on:
 push:
-branches: [main]
+branches:
+- main
 pull_request:
-branches: [main]
+branches:
+- main
 workflow_dispatch:
 
 jobs:
@@ -30,8 +32,7 @@ steps:
 
   - name: Install Firefox
     shell: pwsh
-    run: |
-      choco install firefox -y --no-progress
+    run: choco install firefox -y --no-progress
 
   - name: Install dependencies
     run: |
@@ -41,44 +42,31 @@ steps:
   - name: Download Selenium Server
     shell: pwsh
     run: |
-      Invoke-WebRequest `
-        -Uri "https://github.com/SeleniumHQ/selenium/releases/download/selenium-4.50.0/selenium-server-4.50.0.jar" `
-        -OutFile "selenium-server-4.50.0.jar"
+      Invoke-WebRequest -Uri "https://github.com/SeleniumHQ/selenium/releases/download/selenium-4.50.0/selenium-server-4.50.0.jar" -OutFile "selenium-server-4.50.0.jar"
 
   - name: Start Selenium Grid
     shell: pwsh
     run: |
-      $grid = Start-Process -FilePath "java" `
-        -ArgumentList "-jar", "selenium-server-4.50.0.jar", "standalone" `
-        -PassThru `
-        -RedirectStandardOutput "grid.log" `
-        -RedirectStandardError "grid-error.log"
-
+      $grid = Start-Process -FilePath "java" -ArgumentList "-jar", "selenium-server-4.50.0.jar", "standalone" -PassThru -RedirectStandardOutput "grid.log" -RedirectStandardError "grid-error.log"
       $ready = $false
-
       for ($i = 0; $i -lt 45; $i++) {
         Start-Sleep -Seconds 2
-
         try {
           $response = Invoke-RestMethod "http://localhost:4444/status"
-
           if ($response.value.ready -eq $true) {
             $ready = $true
             break
           }
         } catch {}
-
         if ($grid.HasExited) {
           Write-Host "Selenium Grid stopped unexpectedly."
           break
         }
       }
-
       if (-not $ready) {
         Get-Content grid.log, grid-error.log -ErrorAction SilentlyContinue
         throw "Selenium Grid did not become ready."
       }
-
       Write-Host "Selenium Grid is ready."
 
   - name: Run Grid tests
