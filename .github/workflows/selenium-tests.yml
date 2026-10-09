@@ -1,4 +1,4 @@
-
+﻿
 name: Selenium OrangeHRM Tests
 
 on:
@@ -48,8 +48,11 @@ jobs:
             -Uri "https://github.com/SeleniumHQ/selenium/releases/download/selenium-4.50.0/selenium-server-4.50.0.jar" `
             -OutFile "selenium-server-4.50.0.jar"
 
-      - name: Start Selenium Grid
+      
+      - name: Start Grid and Run Tests
         shell: pwsh
+        env:
+          FIREFOX_BINARY: 'C:\Program Files\Mozilla Firefox\firefox.exe'
         run: |
           $grid = Start-Process `
             -FilePath "java" `
@@ -64,52 +67,62 @@ jobs:
             -RedirectStandardOutput "$PWD\grid.log" `
             -RedirectStandardError "$PWD\grid-error.log"
 
-          $ready = $false
+          $testExitCode = 1
 
-          for ($i = 0; $i -lt 60; $i++) {
-            Start-Sleep -Seconds 2
+          try {
+            $ready = $false
 
-            $grid.Refresh()
+            for ($i = 0; $i -lt 60; $i++) {
+              Start-Sleep -Seconds 2
+              $grid.Refresh()
 
-            if ($grid.HasExited) {
-              Write-Host "Selenium Grid exited during startup."
-              Get-Content grid.log, grid-error.log -ErrorAction SilentlyContinue
-              throw "Selenium Grid failed to start."
-            }
+              if ($grid.HasExited) {
+                Get-Content grid.log, grid-error.log `
+                  -ErrorAction SilentlyContinue
+                throw "Selenium Grid stopped during startup."
+              }
 
-            try {
-              $response = Invoke-RestMethod `
-                -Uri "http://127.0.0.1:4444/status" `
-                -TimeoutSec 5
+              try {
+                $response = Invoke-RestMethod `
+                  -Uri "http://127.0.0.1:4444/status" `
+                  -TimeoutSec 5
 
-              if ($response.value.ready -eq $true) {
-                $ready = $true
-                break
+                if ($response.value.ready -eq $true) {
+                  $ready = $true
+                  break
+                }
+              }
+              catch {
+                Write-Host "Waiting for Selenium Grid..."
               }
             }
-            catch {
-              Write-Host "Waiting for Selenium Grid..."
-            }
-          }
 
-          if (-not $ready) {
-            Write-Host "=== Selenium Grid standard output ==="
+            if (-not $ready) {
+              Get-Content grid.log, grid-error.log `
+                -ErrorAction SilentlyContinue
+              throw "Selenium Grid did not become ready."
+            }
+
+            Write-Host "Grid is ready. Running tests..."
+
+            pytest -v -n 2 --dist=loadfile `
+              test_login_grid.py test_dashboard_grid.py `
+              --html=report.html --self-contained-html
+
+            $testExitCode = $LASTEXITCODE
+          }
+          finally {
+            Write-Host "Stopping Selenium Grid..."
+            Stop-Process -Id $grid.Id -Force -ErrorAction SilentlyContinue
+
+            Write-Host "=== Grid output ==="
             Get-Content grid.log -ErrorAction SilentlyContinue
 
-            Write-Host "=== Selenium Grid error output ==="
+            Write-Host "=== Grid errors ==="
             Get-Content grid-error.log -ErrorAction SilentlyContinue
-
-            throw "Selenium Grid did not become ready within 120 seconds."
           }
 
-          Write-Host "Selenium Grid is ready."
-
-      - name: Run Grid tests
-        env:
-          FIREFOX_BINARY: 'C:\Program Files\Mozilla Firefox\firefox.exe'
-        shell: pwsh
-        run: |
-          pytest -v -n 2 --dist=loadfile test_login_grid.py test_dashboard_grid.py --html=report.html --self-contained-html
+          exit $testExitCode
 
       - name: Show Selenium Grid logs
         if: always()
