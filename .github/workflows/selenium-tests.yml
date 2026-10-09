@@ -1,72 +1,96 @@
 ﻿name: Selenium OrangeHRM Tests
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
+push:
+branches: [main]
+pull_request:
+branches: [main]
+workflow_dispatch:
 
 jobs:
-  selenium-tests:
-    runs-on: windows-latest
+selenium-tests:
+runs-on: windows-latest
+timeout-minutes: 15
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+```
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+  - name: Set up Python
+    uses: actions/setup-python@v5
+    with:
+      python-version: "3.11"
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
+  - name: Set up Java
+    uses: actions/setup-java@v5
+    with:
+      distribution: temurin
+      java-version: "17"
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install selenium pytest pytest-html pytest-xdist
+  - name: Install Firefox
+    shell: pwsh
+    run: |
+      choco install firefox -y --no-progress
 
-      - name: Download Selenium Server
-        shell: pwsh
-        run: |
-          Invoke-WebRequest `
-            -Uri "https://github.com/SeleniumHQ/selenium/releases/download/selenium-4.50.0/selenium-server-4.50.0.jar" `
-            -OutFile "selenium-server-4.50.0.jar"
+  - name: Install dependencies
+    run: |
+      python -m pip install --upgrade pip
+      pip install selenium pytest pytest-html pytest-xdist
 
-      - name: Start Selenium Grid
-        shell: pwsh
-        run: |
-          Start-Process java -ArgumentList "-jar selenium-server-4.50.0.jar standalone" -RedirectStandardOutput "grid.log" -RedirectStandardError "grid-error.log"
-          $ready = $false
-          for ($i = 0; $i -lt 30; $i++) {
-            Start-Sleep -Seconds 2
-            try {
-              $response = Invoke-RestMethod "http://localhost:4444/status"
-              if ($response.value.ready) {
-                $ready = $true
-                break
-              }
-            } catch {}
+  - name: Download Selenium Server
+    shell: pwsh
+    run: |
+      Invoke-WebRequest `
+        -Uri "https://github.com/SeleniumHQ/selenium/releases/download/selenium-4.50.0/selenium-server-4.50.0.jar" `
+        -OutFile "selenium-server-4.50.0.jar"
+
+  - name: Start Selenium Grid
+    shell: pwsh
+    run: |
+      $grid = Start-Process -FilePath "java" `
+        -ArgumentList "-jar", "selenium-server-4.50.0.jar", "standalone" `
+        -PassThru `
+        -RedirectStandardOutput "grid.log" `
+        -RedirectStandardError "grid-error.log"
+
+      $ready = $false
+
+      for ($i = 0; $i -lt 45; $i++) {
+        Start-Sleep -Seconds 2
+
+        try {
+          $response = Invoke-RestMethod "http://localhost:4444/status"
+
+          if ($response.value.ready -eq $true) {
+            $ready = $true
+            break
           }
-          if (-not $ready) {
-            Get-Content grid.log, grid-error.log -ErrorAction SilentlyContinue
-            throw "Selenium Grid did not become ready."
-          }
+        } catch {}
 
-      - name: Run Grid tests
-        env:
-          FIREFOX_BINARY: ""
-        run: |
-          pytest -v -n 2 --dist=loadfile test_login_grid.py test_dashboard_grid.py --html=report.html --self-contained-html
+        if ($grid.HasExited) {
+          Write-Host "Selenium Grid stopped unexpectedly."
+          break
+        }
+      }
 
-      - name: Upload test report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: selenium-test-report
-          path: report.html
+      if (-not $ready) {
+        Get-Content grid.log, grid-error.log -ErrorAction SilentlyContinue
+        throw "Selenium Grid did not become ready."
+      }
+
+      Write-Host "Selenium Grid is ready."
+
+  - name: Run Grid tests
+    env:
+      FIREFOX_BINARY: 'C:\Program Files\Mozilla Firefox\firefox.exe'
+    run: |
+      pytest -v -n 2 --dist=loadfile test_login_grid.py test_dashboard_grid.py --html=report.html --self-contained-html
+
+  - name: Upload test report
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: selenium-test-report
+      path: report.html
+      if-no-files-found: warn
