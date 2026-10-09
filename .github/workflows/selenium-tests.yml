@@ -1,6 +1,6 @@
 ﻿name: Selenium OrangeHRM Tests
 
-on:
+'on':
 push:
 branches:
 - main
@@ -34,6 +34,7 @@ steps:
     run: choco install firefox -y --no-progress
 
   - name: Install dependencies
+    shell: pwsh
     run: |
       python -m pip install --upgrade pip
       pip install selenium pytest pytest-html pytest-xdist
@@ -71,6 +72,7 @@ steps:
   - name: Run Grid tests
     env:
       FIREFOX_BINARY: 'C:\Program Files\Mozilla Firefox\firefox.exe'
+    shell: pwsh
     run: |
       pytest -v -n 2 --dist=loadfile test_login_grid.py test_dashboard_grid.py --html=report.html --self-contained-html
 
