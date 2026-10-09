@@ -64,18 +64,26 @@ jobs:
           }
 
       
+      
       - name: Start Selenium Grid
         shell: pwsh
         run: |
-          $job = Start-Job -ScriptBlock {
-            Set-Location $using:PWD
-            java -jar selenium-server-4.50.0.jar standalone
-          }
+          $grid = Start-Process -FilePath "java" `
+            -ArgumentList "-jar", "selenium-server-4.50.0.jar", "standalone", "--port", "4444" `
+            -PassThru `
+            -RedirectStandardOutput "grid.log" `
+            -RedirectStandardError "grid-error.log"
 
           $ready = $false
 
           for ($i = 0; $i -lt 60; $i++) {
             Start-Sleep -Seconds 2
+
+            if ($grid.HasExited) {
+              Write-Host "Selenium Grid process exited."
+              Get-Content grid.log, grid-error.log -ErrorAction SilentlyContinue
+              throw "Selenium Grid stopped during startup."
+            }
 
             try {
               $response = Invoke-RestMethod `
@@ -89,19 +97,21 @@ jobs:
             } catch {
               Write-Host "Waiting for Selenium Grid..."
             }
-
-            if ($job.State -eq "Failed" -or $job.State -eq "Completed") {
-              Receive-Job $job
-              throw "Selenium Grid background job stopped."
-            }
           }
 
           if (-not $ready) {
-            Receive-Job $job
+            Get-Content grid.log, grid-error.log -ErrorAction SilentlyContinue
             throw "Selenium Grid did not become ready."
           }
 
           Write-Host "Selenium Grid is ready."
+
+      - name: Verify Selenium Grid before tests
+        shell: pwsh
+        run: |
+          Write-Host "Checking Grid immediately before tests..."
+          Invoke-RestMethod -Uri "http://127.0.0.1:4444/status" -TimeoutSec 10 |
+            ConvertTo-Json -Depth 5
 
       - name: Run Grid tests
         env:
