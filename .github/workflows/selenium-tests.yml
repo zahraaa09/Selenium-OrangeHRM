@@ -44,6 +44,25 @@ jobs:
         run: |
           Invoke-WebRequest -Uri "https://github.com/SeleniumHQ/selenium/releases/download/selenium-4.50.0/selenium-server-4.50.0.jar" -OutFile "selenium-server-4.50.0.jar"
 
+      - name: Verify Selenium Grid before tests
+        shell: pwsh
+        run: |
+          Write-Host "Checking Selenium Grid process..."
+          Get-CimInstance Win32_Process |
+            Where-Object { $_.CommandLine -like "*selenium-server-4.50.0.jar*" } |
+            Select-Object ProcessId, CommandLine
+
+          Write-Host "Checking Selenium Grid status..."
+          try {
+            Invoke-RestMethod -Uri "http://127.0.0.1:4444/status" -TimeoutSec 10 |
+              ConvertTo-Json -Depth 5
+          } catch {
+            Write-Host "Grid status check failed:"
+            Write-Host $_
+            Get-Content grid.log, grid-error.log -ErrorAction SilentlyContinue
+            throw
+          }
+
       - name: Start Selenium Grid
         shell: pwsh
         run: |
