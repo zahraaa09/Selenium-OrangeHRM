@@ -16,7 +16,7 @@ def test_dashboard():
         options.binary_location = r"C:\Program Files\Mozilla Firefox ESR\firefox.exe"
 
     driver = webdriver.Remote(
-        command_executor="http://localhost:4444",
+        command_executor="http://127.0.0.1:4444",
         options=options
     )
 
