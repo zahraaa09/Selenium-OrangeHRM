@@ -1,0 +1,74 @@
+{
+  "id": "2aa56e86-2f36-4a71-b7ed-4468a14cbda2",
+  "version": "2.0",
+  "name": "Tugas3_OrangeHRM",
+  "url": "https://opensource-demo.orangehrmlive.com",
+  "tests": [{
+    "id": "126380dc-5059-452b-b94f-da8b2dabfe6c",
+    "name": "Untitled",
+    "commands": [{
+      "id": "c6792a0f-3f19-4557-8fb8-41e2f6d7c771",
+      "comment": "",
+      "command": "open",
+      "target": "/web/index.php/auth/login",
+      "targets": [],
+      "value": ""
+    }, {
+      "id": "e39ec124-ecb2-4fdb-848a-d8891aac19d6",
+      "comment": "",
+      "command": "setWindowSize",
+      "target": "1280x662",
+      "targets": [],
+      "value": ""
+    }, {
+      "id": "6c95186f-98c9-4612-8859-4925b7e395f0",
+      "comment": "",
+      "command": "type",
+      "target": "name=username",
+      "targets": [
+        ["name=username", "name"],
+        ["css=.oxd-input--focus", "css:finder"],
+        ["xpath=//input[@name='username']", "xpath:attributes"],
+        ["xpath=//div[@id='app']/div/div/div/div/div[2]/div[2]/form/div/div/div[2]/input", "xpath:idRelative"],
+        ["xpath=//div[2]/input", "xpath:position"]
+      ],
+      "value": "Admin"
+    }, {
+      "id": "505bd143-81ba-4ab1-b8e0-62a9c79f1b63",
+      "comment": "",
+      "command": "type",
+      "target": "name=password",
+      "targets": [
+        ["name=password", "name"],
+        ["css=.oxd-input--focus", "css:finder"],
+        ["xpath=//input[@name='password']", "xpath:attributes"],
+        ["xpath=//div[@id='app']/div/div/div/div/div[2]/div[2]/form/div[2]/div/div[2]/input", "xpath:idRelative"],
+        ["xpath=//div[2]/div/div[2]/input", "xpath:position"]
+      ],
+      "value": "admin123"
+    }, {
+      "id": "227566b4-d03a-4ec0-ae9b-ad98af70b71a",
+      "comment": "",
+      "command": "click",
+      "target": "css=.oxd-button",
+      "targets": [
+        ["css=.oxd-button", "css:finder"],
+        ["xpath=//button[@type='submit']", "xpath:attributes"],
+        ["xpath=//div[@id='app']/div/div/div/div/div[2]/div[2]/form/div[3]/button", "xpath:idRelative"],
+        ["xpath=//button", "xpath:position"],
+        ["xpath=//button[contains(.,'Login')]", "xpath:innerText"]
+      ],
+      "value": ""
+    }]
+  }],
+  "suites": [{
+    "id": "192b41e3-5119-4769-b693-ceea6ff959e9",
+    "name": "Default Suite",
+    "persistSession": false,
+    "parallel": false,
+    "timeout": 300,
+    "tests": ["126380dc-5059-452b-b94f-da8b2dabfe6c"]
+  }],
+  "urls": ["https://opensource-demo.orangehrmlive.com/"],
+  "plugins": []
+}
